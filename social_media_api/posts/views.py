@@ -5,7 +5,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .models import Post, Like
 from notifications.models import Notification
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])  # Ensure the user is authenticated
 def like_post(request, pk):
@@ -13,7 +12,6 @@ def like_post(request, pk):
     like, created = Like.objects.get_or_create(user=request.user, post=post)  # Create or get the Like instance
 
     if created:
-        # Create notification for the post's author
         Notification.objects.create(
             recipient=post.author,  # Assuming Post model has an author field
             actor=request.user,
