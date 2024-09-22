@@ -2,12 +2,12 @@ from rest_framework import generics, permissions
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from .models import CustomUser
-from .serializers import UserSerializer
+from .serializers import UserRegistrationSerializer, UserLoginSerializer, UserSerializer
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = UserRegistrationSerializer
 
-class LoginView(generics.GenericAPIView):  # Alternatively, you can keep ObtainAuthToken if you prefer
+class LoginView(generics.GenericAPIView):
     serializer_class = UserLoginSerializer
 
     def post(self, request, *args, **kwargs):
@@ -20,6 +20,11 @@ class LoginView(generics.GenericAPIView):  # Alternatively, you can keep ObtainA
             'username': user.username,
             'email': user.email
         })
+
+class UserListView(generics.ListAPIView):  # New view to list users
+    queryset = CustomUser.objects.all()  # Retrieve all users
+    serializer_class = UserSerializer  # Use the UserSerializer to return user data
+    permission_classes = [permissions.IsAuthenticated]  # Ensure only authenticated users can see this
 
 class FollowUserView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
