@@ -1,10 +1,11 @@
-from rest_framework import generics, permissions
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .models import Notification
 
-class NotificationListView(generics.ListAPIView):
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = NotificationSerializer  # Create a serializer for notifications
-
-    def get_queryset(self):
-        return Notification.objects.filter(recipient=self.request.user).order_by('-timestamp')
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_notifications(request):
+    notifications = Notification.objects.filter(recipient=request.user).order_by('-timestamp')
+    serialized_notifications = [{'actor': n.actor.username, 'verb': n.verb, 'timestamp': n.timestamp} for n in notifications]
+    return Response(serialized_notifications)

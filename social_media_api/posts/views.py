@@ -1,44 +1,35 @@
 from django.shortcuts import get_object_or_404
+from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.status import HTTP_404_NOT_FOUND
-from .models import Like, Post
+from .models import Post, Like
 from notifications.models import Notification
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def like_post(request, pk):
-    try:
-        post = get_object_or_404(Post, pk=pk)
-    except Http404:
-        return Response({'message': 'Post not found'}, status=HTTP_404_NOT_FOUND)
+    post = get_object_or_404(Post, pk=pk)
+    like, created = Like.objects.get_or_create(user=request.user, post=post)
 
-    if Like.objects.filter(user=request.user, post=post).exists():
-        return Response({'message': 'You already liked this post.'}, status=400)
-
-    like = Like.objects.create(user=request.user, post=post)
-
-    # Create notification for post owner (if not the current user)
-    if post.user != request.user:
+    if created:
         Notification.objects.create(
-            recipient=post.user,
+            recipient=post.author,
             actor=request.user,
             verb='liked your post',
-            target_content_type=ContentType.objects.get_for_model(Post),
-            target_object_id=post.pk
+            target=post
         )
+        return Response({'status': 'liked'}, status=status.HTTP_201_CREATED)
 
-    return Response({'message': 'Post liked successfully.'})
+    return Response({'status': 'already liked'}, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['POST'])
+@api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def unlike_post(request, pk):
+    post = get_object_or_404(Post, pk=pk)
     try:
-        post = get_object_or_404(Post, pk=pk)
-    except Http404:
-        return Response({'message': 'Post not found'}, status=HTTP_404_NOT_FOUND)
-
-    like = get_object_or_404(Like, user=request.user, post=post)
-    like.delete()
-    return Response({'message': 'Post unliked successfully.'})
+        like = Like.objects.get(user=request.user, post=post)
+        like.delete()
+        return Response({'status': 'unliked'}, status=status.HTTP_204_NO_CONTENT)
+    except Like.DoesNotExist:
+        return Response({'status': 'not liked yet'}, status=status.HTTP_400_BAD_REQUEST)
