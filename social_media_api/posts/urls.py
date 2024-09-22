@@ -2,10 +2,13 @@ from django.urls import path, include
 from .views import FeedView
 from rest_framework.routers import DefaultRouter
 
+# Initialize the router
 router = DefaultRouter()
+
+# Register the FeedView with the router
 router.register(r'feed', FeedView, basename='feed')
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path('', include(router.urls)),  # Include router URLs
+    # ... other routes if any
 ]
-
