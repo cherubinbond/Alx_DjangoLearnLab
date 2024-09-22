@@ -1,20 +1,31 @@
 from rest_framework import generics, permissions
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from .models import Post
-from accounts.models import CustomUser
-from .serializers import PostSerializer  # Ensure you have a serializer for your Post model
+from .models import Post, Like
+from notifications.models import Notification
 
-class FeedView(generics.ListAPIView):
+class LikePostView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = PostSerializer
 
-    def get_queryset(self):
-        # Get the current user
-        current_user = self.request.user
-        
-        # Get the users that the current user is following
-        following_users = current_user.following.all()
-        
-        # Filter posts by the followed users and order them by creation date
-        return Post.objects.filter(author__in=following_users).order_by('-created_at')  # Adjust field as necessary
+    def post(self, request, pk):
+        post = get_object_or_404(Post, pk=pk)
+        like, created = Like.objects.get_or_create(user=request.user, post=post)
+
+        if created:
+            # Create a notification
+            Notification.objects.create(
+                recipient=post.author,
+                actor=request.user,
+                verb='liked your post',
+                target=post
+            )
+            return Response({'message': 'Post liked!'})
+        return Response({'message': 'You have already liked this post.'})
+
+class UnlikePostView(generics.DestroyAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, pk):
+        post = get_object_or_404(Post, pk=pk)
+        Like.objects.filter(user=request.user, post=post).delete()
+        return Response({'message': 'Post unliked!'})
