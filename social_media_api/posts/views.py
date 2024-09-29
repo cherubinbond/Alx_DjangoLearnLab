@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .models import Post, Like
 from notifications.models import Notification
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])  # Ensure the user is authenticated
 def like_post(request, pk):
